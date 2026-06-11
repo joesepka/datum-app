@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import { theme } from '../../lib/theme'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,14 +14,12 @@ export default function IntelSelect() {
   const [selState, setSelState] = useState('')
   const [selCity, setSelCity] = useState('')
 
-  // load the list of states and cities from the data
   useEffect(() => {
     async function load() {
       const { data } = await supabase
         .from('call_list')
         .select('state, city')
         .limit(5000)
-
       if (data) {
         const st = Array.from(new Set(data.map(r => r.state).filter(Boolean))).sort()
         const ct = Array.from(new Set(data.map(r => `${r.city}, ${r.state}`).filter(Boolean))).sort()
@@ -39,16 +38,22 @@ export default function IntelSelect() {
   }
 
   const box: React.CSSProperties = {
-    background: 'white', borderRadius: 14, padding: '14px 16px', marginTop: 12,
-    border: '1.5px solid #E7D8BE', fontSize: 15, color: '#4A1B0C', width: '100%',
+    background: theme.surface, borderRadius: 14, padding: '14px 16px', marginTop: 12,
+    border: `1.5px solid ${theme.surfaceBorder}`, fontSize: 15, color: theme.ink, width: '100%',
+    fontFamily: theme.font,
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#FAEEDA', padding: 24, fontFamily: 'sans-serif', maxWidth: 480, margin: '0 auto' }}>
-      <a href="/" style={{ fontSize: 16, fontWeight: 600, color: '#4A1B0C', textDecoration: 'none' }}>‹ Account Intel</a>
-      <p style={{ fontSize: 13, color: '#854F0B', marginTop: 6 }}>find the accounts you need</p>
+    <main style={{ minHeight: '100vh', background: theme.bg, padding: 24, fontFamily: theme.font, maxWidth: 480, margin: '0 auto' }}>
+      <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer', marginBottom: 10 }}>‹ Back</div>
 
-      <p style={{ fontSize: 13, color: '#854F0B', marginTop: 24 }}>filter by location</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <span style={{ width: 11, height: 11, borderRadius: '50%', background: theme.primary }} />
+        <span style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>Account Intel</span>
+      </div>
+      <p style={{ fontSize: 13, color: theme.muted, marginTop: 6 }}>find the accounts you need</p>
+
+      <p style={{ fontSize: 13, color: theme.muted, marginTop: 24 }}>filter by location</p>
 
       <select style={box} value={selState} onChange={e => setSelState(e.target.value)}>
         <option value="">State — all</option>
@@ -60,11 +65,11 @@ export default function IntelSelect() {
         {cities.map(c => <option key={c} value={c}>{c}</option>)}
       </select>
 
-      <p style={{ fontSize: 12, color: '#B4A98C', textAlign: 'center', marginTop: 18 }}>leave blank to see all accounts</p>
+      <p style={{ fontSize: 12, color: theme.muted, textAlign: 'center', marginTop: 18 }}>leave blank to see all accounts</p>
 
       <button
         onClick={showAccounts}
-        style={{ background: '#27500A', color: '#EAF3DE', border: 'none', borderRadius: 16, padding: 16, fontSize: 16, fontWeight: 600, width: '100%', marginTop: 8, cursor: 'pointer' }}>
+        style={{ background: theme.primary, color: theme.primaryText, border: 'none', borderRadius: 16, padding: 16, fontSize: 16, fontWeight: 700, width: '100%', marginTop: 8, cursor: 'pointer', fontFamily: theme.font }}>
         Show accounts
       </button>
     </main>
