@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export default function IntelSelect() {
   const router = useRouter()
   const [states, setStates] = useState<string[]>([])

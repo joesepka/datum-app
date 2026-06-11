@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 function ResultsInner() {
   const params = useSearchParams()
   const stateFilter = params.get('state') || ''
@@ -31,7 +33,6 @@ function ResultsInner() {
     load()
   }, [stateFilter, cityCombo])
 
-  // color + label by signal
   function look(signal: string) {
     if (signal === 'lapsed') return { bg: '#FBE3E3', fg: '#9B2C2C', label: 'lost' }
     if (signal === 'declining') return { bg: '#FBF0D0', fg: '#7A5B05', label: 'at risk' }
