@@ -78,7 +78,9 @@ function ResultsInner() {
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 14 }}>
-        <span style={{ display: 'inline-block', background: theme.primary, color: theme.primaryText, fontSize: 12.5, fontWeight: 700, padding: '10px 26px', borderRadius: 19 }}>
+        <span
+          onClick={() => router.push(`/intel/territory?state=${encodeURIComponent(stateFilter)}&city=${encodeURIComponent(cityCombo)}`)}
+          style={{ display: 'inline-block', background: theme.primary, color: theme.primaryText, fontSize: 12.5, fontWeight: 700, padding: '10px 26px', borderRadius: 19, cursor: 'pointer' }}>
           Generate Territory Report
         </span>
       </div>
