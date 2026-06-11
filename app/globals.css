@@ -5,12 +5,11 @@ html, body {
   min-height: 100%;
 }
 
-
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FBF6EE;
+  --foreground: #33291E;
 }
 
 @theme inline {
@@ -20,15 +19,7 @@ html, body {
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #FBF6EE;
+  color: #33291E;
 }
