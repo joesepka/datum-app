@@ -98,7 +98,10 @@ function ResultsInner() {
         const sk = theme.status[statusKey(r.signal)]
         const ros = Math.round((r.current_90 || 0) / 3)
         return (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: theme.radius, padding: '9px 14px', marginBottom: 8 }}>
+          <div
+            key={i}
+            onClick={() => router.push(`/intel/account?id=${encodeURIComponent(r.account_id)}`)}
+            style={{ display: 'flex', alignItems: 'center', background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: theme.radius, padding: '9px 14px', marginBottom: 8, cursor: 'pointer' }}>
             <span style={{ width: 13, height: 13, borderRadius: '50%', background: sk.dot, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: theme.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.account_name}</div>
