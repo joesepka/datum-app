@@ -109,8 +109,6 @@ function TerritoryInner() {
   if (loading) {
     return (
       <main style={{ position: 'relative', minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 18px' }}>
-        <HeaderLogo />
-        <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer', marginBottom: 12 }}>‹ Back</div>
         <Loader label="Building territory report…" />
       </main>
     )

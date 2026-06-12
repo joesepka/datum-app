@@ -32,6 +32,12 @@ function dir(cur: number, prior: number): number {
   if (cur < prior * 0.98) return -1
   return 0
 }
+function titleCase(s: string): string {
+  return String(s).toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+}
+function cleanProduct(p: string): string {
+  return titleCase(String(p).replace('DATUM ENERGY ', '').trim())
+}
 
 function Tri({ d, size = 9 }: { d: number; size?: number }) {
   if (d === 0) return <span />
@@ -48,28 +54,20 @@ type Cand = {
   phrase: string
 }
 
-// turn a dimension + state map into a readable place name
 function placeName(scope: string, dimension: string): string {
   if (scope === 'state') return STATE_NAMES[dimension] || dimension
   if (scope === 'city') {
-    // "City, ST" -> "City, Illinois"
     const parts = String(dimension).split(',')
-    const city = parts[0].trim()
+    const city = titleCase(parts[0].trim())
     const st = parts[1] ? parts[1].trim() : ''
     return st ? `${city}, ${STATE_NAMES[st] || st}` : city
   }
-  // channel / chain — title-case the raw value
-  return String(dimension).replace(/\b\w/g, c => c.toUpperCase())
+  return titleCase(dimension)  // channel / chain
 }
 
-// conversational phrase: "Losing doors in Illinois"
-function phraseFor(scope: string, dimension: string, metric: string, direction: number, value: number): string {
-  const place = placeName(scope, dimension)
-  if (metric === 'mom') return `${direction > 0 ? 'Volume up' : 'Volume down'} ${Math.abs(value)}% in ${place}`
-  if (metric === 'ros') return `${direction > 0 ? 'Velocity rising' : 'Velocity slipping'} in ${place}`
-  if (metric === 'dist') return `${direction > 0 ? 'Gaining doors' : 'Losing doors'} in ${place}`
-  if (metric === 'health') return `${direction > 0 ? 'Account health strong' : 'Account health eroding'} in ${place}`
-  return place
+function cityState(dimension: string): string {
+  const parts = String(dimension).split(',')
+  return parts[1] ? parts[1].trim() : ''
 }
 
 function buildCandidates(scope: string, rows: any[]): Cand[] {
@@ -85,46 +83,26 @@ function buildCandidates(scope: string, rows: any[]): Cand[] {
 
     const momPct = pct(cur, prior)
     if (dir(cur, prior) !== 0) {
-      out.push({ scope, dimension: r.dimension, metric: 'mom', direction: momPct > 0 ? 1 : -1, score: Math.abs(momPct) * vol, phrase: phraseFor(scope, r.dimension, 'mom', momPct > 0 ? 1 : -1, momPct) })
+      out.push({ scope, dimension: r.dimension, metric: 'mom', direction: momPct > 0 ? 1 : -1, score: Math.abs(momPct) * vol, phrase: '' })
     }
     const rosD = dir(rosCur, rosPrior)
     if (rosD !== 0) {
       const rp = pct(rosCur, rosPrior)
-      out.push({ scope, dimension: r.dimension, metric: 'ros', direction: rosD, score: Math.abs(rp) * vol, phrase: phraseFor(scope, r.dimension, 'ros', rosD, rp) })
+      out.push({ scope, dimension: r.dimension, metric: 'ros', direction: rosD, score: Math.abs(rp) * vol, phrase: '' })
     }
     const distD = dir(activeCur, activePrior)
     if (distD !== 0) {
       const dp = pct(activeCur, activePrior)
-      out.push({ scope, dimension: r.dimension, metric: 'dist', direction: distD, score: Math.abs(dp) * vol, phrase: phraseFor(scope, r.dimension, 'dist', distD, dp) })
+      out.push({ scope, dimension: r.dimension, metric: 'dist', direction: distD, score: Math.abs(dp) * vol, phrase: '' })
     }
     const badShare = (rk + l) / total
     if (badShare >= 0.45) {
-      out.push({ scope, dimension: r.dimension, metric: 'health', direction: -1, score: badShare * vol, phrase: phraseFor(scope, r.dimension, 'health', -1, 0) })
+      out.push({ scope, dimension: r.dimension, metric: 'health', direction: -1, score: badShare * vol, phrase: '' })
     } else if (g / total >= 0.5) {
-      out.push({ scope, dimension: r.dimension, metric: 'health', direction: 1, score: (g / total) * vol, phrase: phraseFor(scope, r.dimension, 'health', 1, 0) })
+      out.push({ scope, dimension: r.dimension, metric: 'health', direction: 1, score: (g / total) * vol, phrase: '' })
     }
   }
   return out
-}
-
-function pickDiverse(cands: Cand[], n: number): Cand[] {
-  const sorted = [...cands].sort((a, b) => b.score - a.score)
-  const picked: Cand[] = []
-  const seenScopeMetric = new Set<string>()
-  const seenDim = new Set<string>()
-  for (const c of sorted) {
-    if (picked.length >= n) break
-    const key = `${c.scope}:${c.metric}`
-    if (seenScopeMetric.has(key) || seenDim.has(c.dimension)) continue
-    picked.push(c); seenScopeMetric.add(key); seenDim.add(c.dimension)
-  }
-  for (const c of sorted) {
-    if (picked.length >= n) break
-    if (picked.includes(c)) continue
-    if (seenDim.has(c.dimension)) continue
-    picked.push(c); seenDim.add(c.dimension)
-  }
-  return picked
 }
 
 function Grid({ title, scope, rows, highlights }: { title: string; scope: string; rows: any[]; highlights: Record<string, string> }) {
@@ -160,8 +138,8 @@ function Grid({ title, scope, rows, highlights }: { title: string; scope: string
         }
         return (
           <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${theme.line}55` }}>
-            <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: theme.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: 'capitalize' }}>
-              {String(r.dimension).toLowerCase()}
+            <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: theme.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {placeName(scope, r.dimension)}
             </span>
             <span style={{ width: 52, textAlign: 'right', fontSize: 11, fontWeight: 700, color: theme.ink, fontFamily: theme.fontMono }}>{cur.toLocaleString()}</span>
             <span style={{ width: 42, textAlign: 'right', fontSize: 9.5, fontWeight: 700, color: momColor, fontFamily: theme.fontMono, padding: '3px 2px', ...cell('mom') }}>{mom > 0 ? '+' : ''}{mom}%</span>
@@ -189,6 +167,7 @@ function TotalInner() {
   const [cities, setCities] = useState<any[]>([])
   const [channels, setChannels] = useState<any[]>([])
   const [chains, setChains] = useState<any[]>([])
+  const [chanItems, setChanItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -199,6 +178,7 @@ function TotalInner() {
       try { const { data } = await supabase.from('tbr_by_city').select('*'); if (data) setCities(data) } catch (e) {}
       try { const { data } = await supabase.from('tbr_by_channel').select('*'); if (data) setChannels(data) } catch (e) {}
       try { const { data } = await supabase.from('tbr_by_chain').select('*'); if (data) setChains(data) } catch (e) {}
+      try { const { data } = await supabase.from('tbr_channel_items').select('*'); if (data) setChanItems(data) } catch (e) {}
       const remaining = Math.max(0, 1500 - (Date.now() - start))
       setTimeout(() => setLoading(false), remaining)
     }
@@ -211,14 +191,95 @@ function TotalInner() {
     { label: 'ACCOUNTS L90', value: Number(totals.accts_cur).toLocaleString(), sub: 'vs prior', pct: pct(Number(totals.accts_cur), Number(totals.accts_prior)) },
   ] : []
 
+  function channelDriver(channelRaw: string, direction: number): string {
+    const rows = chanItems.filter((r: any) => String(r.channel).toLowerCase() === String(channelRaw).toLowerCase())
+    let best: any = null, bestScore = -1
+    for (const r of rows) {
+      const cur = Number(r.cur), prior = Number(r.prior)
+      const d = dir(cur, prior)
+      if (d !== direction) continue
+      const change = Math.abs(cur - prior)
+      if (change > bestScore) { bestScore = change; best = r }
+    }
+    return best ? cleanProduct(best.product) : ''
+  }
+
+  function makePhrase(c: Cand, flaggedStates: Map<string, number>): string {
+    const place = placeName(c.scope, c.dimension)
+
+    if (c.scope === 'city') {
+      const st = cityState(c.dimension)
+      if (st && flaggedStates.get(st) === c.direction) {
+        const cityOnly = titleCase(String(c.dimension).split(',')[0].trim())
+        const stName = STATE_NAMES[st] || st
+        if (c.direction > 0) return `${stName} is growing, led by ${cityOnly}`
+        return `${stName} is softening, led by ${cityOnly}`
+      }
+    }
+
+    if (c.scope === 'channel') {
+      const driver = channelDriver(c.dimension, c.direction)
+      const ch = titleCase(c.dimension)
+      if (c.direction > 0) return driver ? `${ch} is climbing, led by ${driver}` : `${ch} is climbing`
+      return driver ? `${ch} is softening, driven by ${driver}` : `${ch} is softening`
+    }
+
+    if (c.metric === 'mom') return `${c.direction > 0 ? 'Volume up' : 'Volume down'} in ${place}`
+    if (c.metric === 'ros') return `${c.direction > 0 ? 'Velocity rising' : 'Velocity slipping'} in ${place}`
+    if (c.metric === 'dist') return `${c.direction > 0 ? 'Gaining doors' : 'Losing doors'} in ${place}`
+    if (c.metric === 'health') return `${c.direction > 0 ? 'Account health strong' : 'Account health eroding'} in ${place}`
+    return place
+  }
+
   const allCands = [
     ...buildCandidates('state', states),
     ...buildCandidates('city', cities),
     ...buildCandidates('channel', channels),
     ...buildCandidates('chain', chains),
   ]
-  const tailwinds = pickDiverse(allCands.filter(c => c.direction > 0), 4)
-  const headwinds = pickDiverse(allCands.filter(c => c.direction < 0), 4)
+
+  function flaggedStateMap(cands: Cand[]): Map<string, number> {
+    const m = new Map<string, number>()
+    for (const c of cands.filter(x => x.scope === 'state')) {
+      m.set(c.dimension, c.direction)
+    }
+    return m
+  }
+  const stateDir = flaggedStateMap(allCands)
+
+  function pickWithRollup(cands: Cand[], n: number): Cand[] {
+    const sorted = [...cands].sort((a, b) => b.score - a.score)
+    const picked: Cand[] = []
+    const seenScopeMetric = new Set<string>()
+    const seenDim = new Set<string>()
+    const rolledStates = new Set<string>()
+
+    for (const c of sorted) {
+      if (picked.length >= n) break
+      if (c.scope === 'city') {
+        const st = cityState(c.dimension)
+        if (st && stateDir.get(st) === c.direction) {
+          if (rolledStates.has(st)) continue
+          rolledStates.add(st)
+        }
+      }
+      if (c.scope === 'state' && rolledStates.has(c.dimension)) continue
+      const key = `${c.scope}:${c.metric}`
+      if (seenScopeMetric.has(key) || seenDim.has(c.dimension)) continue
+      picked.push(c); seenScopeMetric.add(key); seenDim.add(c.dimension)
+    }
+    for (const c of sorted) {
+      if (picked.length >= n) break
+      if (picked.includes(c)) continue
+      if (c.scope === 'state' && rolledStates.has(c.dimension)) continue
+      if (seenDim.has(c.dimension)) continue
+      picked.push(c); seenDim.add(c.dimension)
+    }
+    return picked
+  }
+
+  const tailwinds = pickWithRollup(allCands.filter(c => c.direction > 0), 3)
+  const headwinds = pickWithRollup(allCands.filter(c => c.direction < 0), 3)
 
   const highlights: Record<string, string> = {}
   for (const c of tailwinds) highlights[`${c.scope}:${c.dimension}:${c.metric}`] = 'g'
@@ -234,9 +295,9 @@ function TotalInner() {
         </div>
         {items.length === 0 && <div style={{ fontSize: 9, color: theme.muted }}>—</div>}
         {items.map((c, i) => (
-          <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 9, alignItems: 'flex-start' }}>
-            <span style={{ color, fontWeight: 700, fontSize: 10, lineHeight: '13px' }}>–</span>
-            <span style={{ fontSize: 9.5, color: theme.ink, lineHeight: '13px' }}>{c.phrase}</span>
+          <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'flex-start' }}>
+            <span style={{ color, fontWeight: 700, fontSize: 10, lineHeight: '14px' }}>–</span>
+            <span style={{ fontSize: 9.5, color: theme.ink, lineHeight: '14px' }}>{makePhrase(c, stateDir)}</span>
           </div>
         ))}
       </div>

@@ -39,8 +39,6 @@ function AccountInner() {
 
   if (loading || !acct) {
     return <main style={{ position: 'relative', minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: 24 }}>
-      <HeaderLogo />
-      <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer' }}>‹ Back</div>
       <Loader label="Loading account…" />
     </main>
   }

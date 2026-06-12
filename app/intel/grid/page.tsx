@@ -77,13 +77,13 @@ function GridInner() {
 
   return (
     <main style={{ position: 'relative', minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 16px 40px' }}>
-      <HeaderLogo />
-      <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer', marginBottom: 12 }}>‹ Back</div>
-
       {loading ? (
         <Loader label="Building distribution grid…" />
       ) : (
         <>
+          <HeaderLogo />
+          <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer', marginBottom: 12 }}>‹ Back</div>
+
           <div style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>Distribution Grid</div>
           {acct && (
             <div style={{ fontSize: 11, color: theme.muted, marginTop: 3 }}>
