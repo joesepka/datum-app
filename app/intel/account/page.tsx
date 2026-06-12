@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { theme } from '../../../lib/theme'
 import { Loader } from '../../../lib/loader'
+import { HeaderLogo } from '../../../lib/headerlogo'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,8 @@ function AccountInner() {
   }, [id])
 
   if (loading || !acct) {
-    return <main style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: 24 }}>
+    return <main style={{ position: 'relative', minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: 24 }}>
+      <HeaderLogo />
       <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer' }}>‹ Back</div>
       <Loader label="Loading account…" />
     </main>
@@ -103,14 +105,25 @@ function AccountInner() {
   const brief = buildBriefing()
 
   return (
-    <main style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 18px 40px' }}>
+    <main style={{ position: 'relative', minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 18px 40px' }}>
+      <HeaderLogo />
       <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer', marginBottom: 12 }}>‹ Back</div>
 
+      {/* identity */}
       <div style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>{acct.account_name}</div>
       <div style={{ fontSize: 11, color: theme.muted, marginTop: 3 }}>{acct.city}, {acct.state} {acct.zip} · {(acct.channel || '').toLowerCase()}</div>
       <div style={{ fontSize: 11, color: theme.muted, marginTop: 1 }}>{acct.area_type} · avg household income in area: {acct.income_bucket}</div>
+
+      {/* Distribution Grid button */}
+      <div
+        onClick={() => router.push(`/intel/grid?id=${encodeURIComponent(id)}`)}
+        style={{ display: 'inline-block', marginTop: 12, background: theme.surface, border: `1.5px solid ${theme.primary}`, color: theme.primary, fontSize: 12.5, fontWeight: 700, padding: '8px 16px', borderRadius: 12, cursor: 'pointer' }}>
+        Distribution Grid →
+      </div>
+
       <div style={{ height: 1, background: theme.line, margin: '14px 0' }} />
 
+      {/* chart */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: theme.ink }}>Rate of sale · avg cases sold / month</span>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: theme.status.atRisk.text }}>{trendDir}</span>
@@ -143,6 +156,7 @@ function AccountInner() {
         </svg>
       </div>
 
+      {/* top items */}
       <div style={{ fontSize: 12, fontWeight: 700, color: theme.ink, marginTop: 22 }}>Top items · current vs prior 90 days</div>
       <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 12, padding: '14px 8px 8px', marginTop: 10, display: 'flex', alignItems: 'flex-end', height: 160 }}>
         {items.map((it: any, i: number) => {
@@ -169,6 +183,7 @@ function AccountInner() {
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: theme.tabBg, borderRadius: 2 }} /> prior 90 days</span>
       </div>
 
+      {/* PRE-CALL BRIEFING */}
       <div style={{ background: theme.surface, border: `1.5px solid ${theme.primary}`, borderRadius: 14, padding: 16, marginTop: 22 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: theme.primary, letterSpacing: 0.5, marginBottom: 12 }}>PRE-CALL BRIEFING</div>
         <div style={{ marginBottom: 10 }}>
@@ -191,6 +206,7 @@ function AccountInner() {
         </div>
       </div>
 
+      {/* new item sold in */}
       <div
         onClick={() => router.push(`/intel/soldin?id=${encodeURIComponent(id)}`)}
         style={{ background: theme.primary, color: theme.primaryText, textAlign: 'center', fontSize: 15, fontWeight: 700, padding: 15, borderRadius: 16, marginTop: 22, cursor: 'pointer' }}>

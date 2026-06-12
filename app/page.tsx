@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { theme } from '../lib/theme'
+import { HeaderLogo } from '../lib/headerlogo'
 
 function Splash({ onDone }: { onDone: () => void }) {
   const [progress, setProgress] = useState(0)
@@ -21,7 +22,7 @@ function Splash({ onDone }: { onDone: () => void }) {
     return () => cancelAnimationFrame(raf)
   }, [onDone])
 
-  const cx = 170, cy = 250, s = 1.6
+  const cx = 170, cy = 150, s = 1.6
   const pts = [
     { x: cx - 40 * s, y: cy + 22 * s },
     { x: cx - 22 * s, y: cy + 26 * s },
@@ -64,7 +65,7 @@ function Splash({ onDone }: { onDone: () => void }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       transition: 'opacity 0.4s ease', opacity: progress >= 1 ? 0 : 1,
     }}>
-      <svg viewBox="0 0 340 360" style={{ width: 260, height: 'auto' }}>
+      <svg viewBox="0 0 340 260" style={{ width: 260, height: 'auto' }}>
         <path d={L} stroke={theme.ink} strokeWidth={1.8} fill="none" strokeLinejoin="round" opacity={0.5} />
         <path d={R} stroke={theme.ink} strokeWidth={1.8} fill="none" strokeLinejoin="round" opacity={0.5} />
         {drawnPts.length > 1 && (
@@ -76,9 +77,9 @@ function Splash({ onDone }: { onDone: () => void }) {
         {arrow && <path d={arrow} stroke={theme.primary} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />}
       </svg>
 
-      <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: theme.ink, letterSpacing: 1, marginTop: 4 }}>ShelfStory</div>
+      <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: theme.ink, letterSpacing: 1, marginTop: 18 }}>ShelfStory</div>
 
-      <div style={{ width: 130, height: 4, background: theme.line, borderRadius: 2, marginTop: 20, overflow: 'hidden' }}>
+      <div style={{ width: 130, height: 4, background: theme.line, borderRadius: 2, marginTop: 22, overflow: 'hidden' }}>
         <div style={{ width: `${progress * 100}%`, height: '100%', background: theme.primary, borderRadius: 2 }} />
       </div>
     </div>
@@ -92,31 +93,32 @@ export default function Home() {
     <>
       {showSplash && <Splash onDone={() => setShowSplash(false)} />}
 
-      <main style={{ minHeight: '100vh', background: theme.bg, padding: 24, fontFamily: theme.font, maxWidth: 480, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 16 }}>
-          <span style={{ width: 11, height: 11, borderRadius: '50%', background: theme.primary, display: 'inline-block' }} />
-          <span style={{ fontWeight: 700, fontSize: 19, color: theme.ink, letterSpacing: 0.3 }}>ShelfStory</span>
-        </div>
+      <main style={{ position: 'relative', minHeight: '100vh', background: theme.bg, padding: 24, fontFamily: theme.font, maxWidth: 480, margin: '0 auto' }}>
+        <HeaderLogo />
 
         <h1 style={{ fontSize: 26, color: theme.ink, marginTop: 48, marginBottom: 4 }}>Good morning, Joe.</h1>
         <p style={{ fontSize: 15, color: theme.muted, marginTop: 0 }}>Where do you want to start?</p>
 
+        <Link href="/intel/total" style={{ textDecoration: 'none' }}>
+          <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 22, padding: 20, marginTop: 28, cursor: 'pointer' }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>Total Business Recap</div>
+            <div style={{ fontSize: 13, color: theme.muted, marginTop: 6 }}>the whole book at a glance — volume, momentum, and account health by market</div>
+            <div style={{ fontSize: 12, color: theme.primary, marginTop: 10, textAlign: 'right' }}>tap to open ›</div>
+          </div>
+        </Link>
+
         <Link href="/intel" style={{ textDecoration: 'none' }}>
-          <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 22, padding: 20, marginTop: 28 }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>Your Accounts</div>
+          <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 22, padding: 20, marginTop: 16, cursor: 'pointer' }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>Account Intel</div>
             <div style={{ fontSize: 13, color: theme.muted, marginTop: 6 }}>find accounts by area & see exactly what's happening at each one</div>
             <div style={{ fontSize: 12, color: theme.primary, marginTop: 10, textAlign: 'right' }}>tap to open ›</div>
           </div>
         </Link>
 
-        <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 22, padding: 20, marginTop: 16, opacity: 0.65 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: theme.muted }}>—</div>
-          <div style={{ fontSize: 13, color: theme.muted, marginTop: 6 }}>coming soon</div>
-        </div>
-
-        <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 22, padding: 20, marginTop: 16, opacity: 0.65 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: theme.muted }}>—</div>
-          <div style={{ fontSize: 13, color: theme.muted, marginTop: 6 }}>coming soon</div>
+        <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 22, padding: 20, marginTop: 16, cursor: 'pointer' }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>Distributor Review</div>
+          <div style={{ fontSize: 13, color: theme.muted, marginTop: 6 }}>performance by distributor — depletions, gaps, and trends</div>
+          <div style={{ fontSize: 12, color: theme.muted, marginTop: 10, textAlign: 'right' }}>coming soon</div>
         </div>
       </main>
     </>

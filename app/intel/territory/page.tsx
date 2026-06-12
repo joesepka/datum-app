@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { theme } from '../../../lib/theme'
 import { Loader } from '../../../lib/loader'
+import { HeaderLogo } from '../../../lib/headerlogo'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,7 +108,8 @@ function TerritoryInner() {
 
   if (loading) {
     return (
-      <main style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 18px' }}>
+      <main style={{ position: 'relative', minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 18px' }}>
+        <HeaderLogo />
         <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer', marginBottom: 12 }}>‹ Back</div>
         <Loader label="Building territory report…" />
       </main>
@@ -238,7 +240,8 @@ function TerritoryInner() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 18px 48px' }}>
+    <main style={{ position: 'relative', minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 18px 48px' }}>
+      <HeaderLogo />
       <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer', marginBottom: 12 }}>‹ Back</div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
