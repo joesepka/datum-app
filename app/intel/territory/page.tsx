@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { theme } from '../../../lib/theme'
+import { Loader } from '../../../lib/loader'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,27 +23,30 @@ function TerritoryInner() {
   const cityCombo = params.get('city') || ''
   const city = cityCombo ? cityCombo.split(',')[0].trim() : ''
 
+  const [loading, setLoading] = useState(true)
   const [health, setHealth] = useState<any[]>([])
   const [items, setItems] = useState<any[]>([])
   const [trend, setTrend] = useState<any | null>(null)
   const [channel, setChannel] = useState<any[]>([])
   const [income, setIncome] = useState<any[]>([])
   const [area, setArea] = useState<any[]>([])
+  const [summary, setSummary] = useState<any | null>(null)
 
   useEffect(() => {
     async function load() {
+      const start = Date.now()
       const applyFilter = (q: any) => {
         if (state) q = q.eq('state', state)
         if (city) q = q.eq('city', city)
         return q
       }
-
       const h = await applyFilter(supabase.from('territory_health').select('health_bucket, vol_52wk'))
       const it = await applyFilter(supabase.from('territory_items').select('product, cur_90, prior_90'))
       const tr = await applyFilter(supabase.from('territory_trend').select('*'))
       const ch = await applyFilter(supabase.from('territory_by_channel').select('bucket, cases_90d, accounts, cur_total, prior_total'))
       const inc = await applyFilter(supabase.from('territory_by_income').select('bucket, cases_90d, accounts, cur_total, prior_total'))
       const ar = await applyFilter(supabase.from('territory_by_area').select('bucket, cases_90d, accounts, cur_total, prior_total'))
+      const sm = await applyFilter(supabase.from('territory_summary').select('*'))
 
       setHealth(aggBucket(h.data, 'health_bucket', ['vol_52wk']))
       setItems(aggBucket(it.data, 'product', ['cur_90', 'prior_90']).sort((a: any, b: any) => b.cur_90 - a.cur_90).slice(0, 6))
@@ -50,6 +54,9 @@ function TerritoryInner() {
       setChannel(aggDim(ch.data))
       setIncome(aggDim(inc.data))
       setArea(aggDim(ar.data))
+      setSummary(sumSummary(sm.data))
+      const remaining = Math.max(0, 1500 - (Date.now() - start))
+      setTimeout(() => setLoading(false), remaining)
     }
     load()
   }, [state, city])
@@ -75,7 +82,7 @@ function TerritoryInner() {
       m[k].cur_total += Number(r.cur_total) || 0
       m[k].prior_total += Number(r.prior_total) || 0
     }
-    return Object.values(m).sort((a: any, b: any) => b.cases_90d - a.cases_90d)
+    return Object.values(m).filter((r: any) => r.bucket !== '—').sort((a: any, b: any) => b.cases_90d - a.cases_90d)
   }
   function sumTrend(rows: any[] | null): any {
     if (!rows || !rows.length) return null
@@ -84,12 +91,47 @@ function TerritoryInner() {
     keys.forEach(k => out[k] = rows.reduce((s: number, r: any) => s + (Number(r[k]) || 0), 0))
     return out
   }
+  function sumSummary(rows: any[] | null): any {
+    if (!rows || !rows.length) return null
+    const out = { cases_cur: 0, cases_prior: 0, accts_cur: 0, accts_prior: 0 }
+    for (const r of rows) {
+      out.cases_cur += Number(r.cases_cur) || 0
+      out.cases_prior += Number(r.cases_prior) || 0
+      out.accts_cur += Number(r.accts_cur) || 0
+      out.accts_prior += Number(r.accts_prior) || 0
+    }
+    return out
+  }
 
   const title = cityCombo || state || 'All territory'
+
+  if (loading) {
+    return (
+      <main style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.font, maxWidth: 480, margin: '0 auto', padding: '20px 18px' }}>
+        <div onClick={() => router.back()} style={{ fontSize: 15, color: theme.muted, cursor: 'pointer', marginBottom: 12 }}>‹ Back</div>
+        <Loader label="Building territory report…" />
+      </main>
+    )
+  }
 
   const healthMap: any = {}
   health.forEach((h: any) => healthMap[h.health_bucket] = h.vol_52wk)
   const healthTotal = ORDER.reduce((s, k) => s + (healthMap[k] || 0), 0) || 1
+
+  const pctChange = (cur: number, prior: number) => prior ? Math.round((cur - prior) / prior * 100) : 0
+  let boxes: any[] = []
+  if (summary) {
+    const casesPct = pctChange(summary.cases_cur, summary.cases_prior)
+    const acctsPct = pctChange(summary.accts_cur, summary.accts_prior)
+    const rosCur = summary.accts_cur ? summary.cases_cur / summary.accts_cur / 3 : 0
+    const rosPrior = summary.accts_prior ? summary.cases_prior / summary.accts_prior / 3 : 0
+    const rosPct = rosPrior ? Math.round((rosCur - rosPrior) / rosPrior * 100) : 0
+    boxes = [
+      { label: 'Total Cases', sub: 'L90', value: summary.cases_cur.toLocaleString(), pct: casesPct },
+      { label: 'Active Accounts', sub: 'L90', value: summary.accts_cur.toLocaleString(), pct: acctsPct },
+      { label: 'Cases / Acct', sub: 'per month', value: rosCur.toFixed(1), pct: rosPct },
+    ]
+  }
 
   let chart: any = null
   if (trend) {
@@ -118,8 +160,8 @@ function TerritoryInner() {
   function dirOf(r: any) {
     const c = Number(r.cur_total), p = Number(r.prior_total)
     if (p === 0) return 'flat'
-    if (c >= p * 1.3) return 'up'
-    if (c <= p * 0.7) return 'down'
+    if (c >= p * 1.08) return 'up'
+    if (c <= p * 0.92) return 'down'
     return 'flat'
   }
 
@@ -128,7 +170,6 @@ function TerritoryInner() {
     const pct = (k: string) => Math.round((healthMap[k] || 0) / healthTotal * 100)
     const growPct = pct('growing'), riskPct = pct('at_risk'), lapsedPct = pct('lapsed')
     const atRiskTotal = riskPct + lapsedPct
-
     const trendWord = chart ? (chart.up ? 'rising' : 'softening') : 'steady'
     let p1 = `${title} volume is ${trendWord}`
     if (chart) {
@@ -147,7 +188,6 @@ function TerritoryInner() {
       p1 += ` ${movers.join(' and ')} lead the book.`
     }
     paras.push(p1)
-
     const allRows = [...channel, ...area].filter((r: any) => Number(r.accounts) >= 5)
     const byRos = allRows.map((r: any) => ({
       name: String(r.bucket).toLowerCase(),
@@ -165,7 +205,6 @@ function TerritoryInner() {
     if (rising) p2 += '.'
     if (atRiskTotal >= 20) p2 += ` Priority: defend the at-risk base while pressing distribution where per-account velocity is strongest.`
     if (p2.trim()) paras.push(p2.trim())
-
     return paras
   }
   const assessment = buildAssessment()
@@ -210,7 +249,21 @@ function TerritoryInner() {
       </div>
       <div style={{ fontSize: 11, color: theme.muted, marginTop: 4 }}>Territory Overview · last 52 weeks</div>
 
-      {/* HEALTH METER */}
+      {boxes.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+          {boxes.map((b, i) => (
+            <div key={i} style={{ flex: 1, background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 12, padding: '12px 10px' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: theme.muted, letterSpacing: 0.3 }}>{b.label}</div>
+              <div style={{ fontSize: 7.5, color: theme.muted, marginTop: 1 }}>{b.sub}</div>
+              <div style={{ fontSize: 19, fontWeight: 700, color: theme.ink, fontFamily: theme.fontMono, marginTop: 6 }}>{b.value}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, marginTop: 2, color: b.pct > 0 ? '#3E6E2C' : b.pct < 0 ? '#B23A2E' : theme.muted }}>
+                {b.pct > 0 ? '▲' : b.pct < 0 ? '▼' : '—'} {Math.abs(b.pct)}% vs prior 90
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: theme.ink }}>Territory health</span>
         <span style={{ fontSize: 10, color: theme.muted }}>by volume</span>
@@ -231,7 +284,6 @@ function TerritoryInner() {
         })}
       </div>
 
-      {/* ASSESSMENT */}
       <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 14, padding: 16, marginTop: 20 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: theme.primary, marginBottom: 10 }}>Territory assessment</div>
         {assessment.map((p, i) => (
@@ -239,34 +291,36 @@ function TerritoryInner() {
         ))}
       </div>
 
-      {/* TOP ITEMS */}
-      <div style={{ fontSize: 12.5, fontWeight: 700, color: theme.ink, marginTop: 26 }}>Top items · L90 vs prior 90</div>
-      <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 12, padding: '14px 8px 8px', marginTop: 10, display: 'flex', alignItems: 'flex-end', height: 150 }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: theme.ink, marginTop: 26 }}>Top items · current vs prior 90 days</div>
+      <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 12, padding: '14px 8px 8px', marginTop: 10, display: 'flex', alignItems: 'flex-end', height: 165 }}>
         {items.map((it: any, i: number) => {
-          const cur = Number(it.cur_90), prev = Number(it.prior_90)
-          const hc = (cur / itemMax) * 96, hp = (prev / itemMax) * 96
+          const c = Number(it.cur_90), prev = Number(it.prior_90)
+          const hc = (c / itemMax) * 100, hp = (prev / itemMax) * 100
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-              <div style={{ fontSize: 8, fontWeight: 700, color: theme.ink, fontFamily: theme.fontMono }}>{cur}</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginTop: 2 }}>
-                <div style={{ width: 9, height: hp, background: theme.tabBg, borderRadius: 2 }} />
+              <div style={{ display: 'flex', gap: 4, marginBottom: 2 }}>
+                <span style={{ fontSize: 8.5, fontWeight: 700, color: theme.primary, fontFamily: theme.fontMono }}>{c}</span>
+                <span style={{ fontSize: 8.5, fontWeight: 700, color: theme.muted, fontFamily: theme.fontMono }}>{prev}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
                 <div style={{ width: 9, height: hc, background: theme.primary, borderRadius: 2 }} />
+                <div style={{ width: 9, height: hp, background: theme.tabBg, borderRadius: 2 }} />
               </div>
               <div style={{ fontSize: 7.5, color: theme.ink, marginTop: 4, textAlign: 'center', lineHeight: 1.1 }}>{String(it.product).slice(0, 9)}</div>
             </div>
           )
         })}
       </div>
-      <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 7.5, color: theme.muted }}>
-        <span>▮ L90 (coral)</span><span>▮ prior 90 (grey)</span>
+      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 9.5, color: theme.ink, alignItems: 'center' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: theme.primary, borderRadius: 2 }} /> current 90 days</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: theme.tabBg, borderRadius: 2 }} /> prior 90 days</span>
       </div>
 
-      {/* TREND */}
       {chart && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: theme.ink }}>Rolling 90-day total cases</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: chart.up ? '#3E6E2C' : '#B23A2E' }}>{chart.up ? 'trending up' : 'trending down'}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: chart.up ? '#3E6E2C' : '#B23A2E' }}>{chart.up ? 'trending up' : 'trending down'}</span>
           </div>
           <div style={{ background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, borderRadius: 12, padding: 8, marginTop: 10 }}>
             <svg viewBox={`0 0 ${chart.W} ${chart.H}`} style={{ width: '100%' }}>
@@ -291,7 +345,6 @@ function TerritoryInner() {
         </>
       )}
 
-      {/* WHO'S BUYING */}
       <div style={{ fontSize: 12.5, fontWeight: 700, color: theme.ink, marginTop: 26 }}>Who's buying</div>
       <Table title="By channel" rows={channel} />
       <Table title="By household income" rows={income} />

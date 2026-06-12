@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import { theme } from '../../lib/theme'
+import { Loader } from '../../lib/loader'
 
 export const dynamic = 'force-dynamic'
 
 export default function IntelSelect() {
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
   const [states, setStates] = useState<string[]>([])
   const [cities, setCities] = useState<string[]>([])
   const [selState, setSelState] = useState('')
@@ -16,16 +18,16 @@ export default function IntelSelect() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from('call_list')
-        .select('state, city')
-        .limit(5000)
+      const start = Date.now()
+      const { data } = await supabase.from('call_list').select('state, city').limit(5000)
       if (data) {
-        const st = Array.from(new Set(data.map(r => r.state).filter(Boolean))).sort()
-        const ct = Array.from(new Set(data.map(r => `${r.city}, ${r.state}`).filter(Boolean))).sort()
+        const st = Array.from(new Set(data.map((r: any) => r.state).filter(Boolean))).sort() as string[]
+        const ct = Array.from(new Set(data.map((r: any) => `${r.city}, ${r.state}`).filter(Boolean))).sort() as string[]
         setStates(st)
         setCities(ct)
       }
+      const remaining = Math.max(0, 1500 - (Date.now() - start))
+      setTimeout(() => setLoading(false), remaining)
     }
     load()
   }, [])
@@ -49,29 +51,35 @@ export default function IntelSelect() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <span style={{ width: 11, height: 11, borderRadius: '50%', background: theme.primary }} />
-        <span style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>Account Intel</span>
+        <span style={{ fontSize: 17, fontWeight: 700, color: theme.ink }}>Your Accounts</span>
       </div>
       <p style={{ fontSize: 13, color: theme.muted, marginTop: 6 }}>find the accounts you need</p>
 
-      <p style={{ fontSize: 13, color: theme.muted, marginTop: 24 }}>filter by location</p>
+      {loading ? (
+        <Loader label="Loading your territory…" />
+      ) : (
+        <>
+          <p style={{ fontSize: 13, color: theme.muted, marginTop: 24 }}>filter by location</p>
 
-      <select style={box} value={selState} onChange={e => setSelState(e.target.value)}>
-        <option value="">State — all</option>
-        {states.map(s => <option key={s} value={s}>{s}</option>)}
-      </select>
+          <select style={box} value={selState} onChange={e => setSelState(e.target.value)}>
+            <option value="">State — all</option>
+            {states.map((s: string) => <option key={s} value={s}>{s}</option>)}
+          </select>
 
-      <select style={box} value={selCity} onChange={e => setSelCity(e.target.value)}>
-        <option value="">City — all</option>
-        {cities.map(c => <option key={c} value={c}>{c}</option>)}
-      </select>
+          <select style={box} value={selCity} onChange={e => setSelCity(e.target.value)}>
+            <option value="">City — all</option>
+            {cities.map((c: string) => <option key={c} value={c}>{c}</option>)}
+          </select>
 
-      <p style={{ fontSize: 12, color: theme.muted, textAlign: 'center', marginTop: 18 }}>leave blank to see all accounts</p>
+          <p style={{ fontSize: 12, color: theme.muted, textAlign: 'center', marginTop: 18 }}>leave blank to see all accounts</p>
 
-      <button
-        onClick={showAccounts}
-        style={{ background: theme.primary, color: theme.primaryText, border: 'none', borderRadius: 16, padding: 16, fontSize: 16, fontWeight: 700, width: '100%', marginTop: 8, cursor: 'pointer', fontFamily: theme.font }}>
-        Show accounts
-      </button>
+          <button
+            onClick={showAccounts}
+            style={{ background: theme.primary, color: theme.primaryText, border: 'none', borderRadius: 16, padding: 16, fontSize: 16, fontWeight: 700, width: '100%', marginTop: 8, cursor: 'pointer', fontFamily: theme.font }}>
+            Show accounts
+          </button>
+        </>
+      )}
     </main>
   )
 }
